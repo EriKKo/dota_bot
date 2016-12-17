@@ -1,0 +1,94 @@
+Action_AttackMove................function call failed
+Action_AttackUnit................function call failed
+Action_Buyback...................function call failed
+Action_ClearActions..............function call failed
+Action_DropItem..................function call failed
+Action_LevelAbility..............function call failed
+Action_MoveToLocation............function call failed
+Action_MoveToUnit................function call failed
+Action_PickUpItem................function call failed
+Action_PickUpRune................function call failed
+Action_PurchaseItem..............function call failed
+Action_SellItem..................function call failed
+Action_UseAbility................function call failed
+Action_UseAbilityOnEntity........function call failed
+Action_UseAbilityOnLocation......function call failed
+Action_UseAbilityOnTree..........function call failed
+CanBeSeen........................=> true
+DistanceFromFountain.............=> 0
+DistanceFromSecretShop...........=> 8307
+DistanceFromSideShop.............=> 10760
+FindAoELocation..................function call failed
+GetAbilityByName.................function call failed
+GetActiveMode....................=> 4
+GetActiveModeDesire..............=> 1
+GetActualDamage..................function call failed
+GetAssignedLane..................=> 1
+GetAttackTarget..................=> nil
+GetCourierValue..................=> 0
+GetDifficulty....................=> 3
+GetEstimatedDamageToTarget.......function call failed
+GetExtrapolatedLocation..........function call failed
+GetFacing........................=> 225
+GetGold..........................=> 500
+GetGroundHeight..................=> 512
+GetHealth........................=> 560
+GetItemInSlot....................function call failed
+GetLastSeenLocation..............=> Vector 0000000000335898 [6900.000000 6650.000000 512.000000]
+GetLocation......................=> Vector 0000000000335A10 [6900.000000 6650.000000 512.000000]
+GetMana..........................=> 374
+GetMaxHealth.....................=> 560
+GetMaxMana.......................=> 374
+GetMovementDirectionStability....=> 1
+GetNearbyCreeps..................function call failed
+GetNearbyHeroes..................function call failed
+GetNearbyTowers..................function call failed
+GetNextItemPurchaseValue.........=> 125
+GetPlayer........................=> 5
+GetRespawnTime...................=> 7
+GetSlowDuration..................function call failed
+GetStashValue....................=> 125
+GetStunDuration..................function call failed
+GetTarget........................=> nil
+GetTimeSinceLastSeen.............=> 0
+GetUnitName......................=> npc_dota_hero_lina
+GetVelocity......................=> Vector 0000000000322590 [0.000000 0.000000 0.000000]
+HasBlink.........................function call failed
+HasBuyback.......................=> false
+HasInvisibility..................function call failed
+HasMinistunOnAttack..............=> false
+HasScepter.......................=> false
+HasSilence.......................function call failed
+IsAlive..........................=> true
+IsAttackImmune...................=> false
+IsBlind..........................=> false
+IsBlockDisabled..................=> false
+IsBuilding.......................=> false
+IsChanneling.....................=> false
+IsCreep..........................=> false
+IsDisarmed.......................=> false
+IsDominated......................=> false
+IsEvadeDisabled..................=> false
+IsFort...........................=> false
+IsHero...........................=> true
+IsHexed..........................=> false
+IsIllusion.......................=> false
+IsInvulnerable...................=> false
+IsMagicImmune....................=> false
+IsMuted..........................=> false
+IsNightmared.....................=> false
+IsNull...........................=> false
+IsRooted.........................=> false
+IsSilenced.......................=> false
+IsSpeciallyDeniable..............=> false
+IsStunned........................=> false
+IsTower..........................=> false
+IsUnableToMiss...................=> false
+IsUsingAbility...................=> false
+SetNextItemPurchaseValue.........function call failed
+SetTarget........................function call failed
+TimeSinceDamagedByAnyHero........=> 18.966720581055
+TimeSinceDamagedByHero...........function call failed
+UsingItemBreaksInvisibility......=> false
+WasRecentlyDamagedByAnyHero......function call failed
+WasRecentlyDamagedByHero.........function call failed

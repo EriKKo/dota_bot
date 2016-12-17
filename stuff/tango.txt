@@ -1,0 +1,40 @@
+CanAbilityBeUpgraded..............=> false
+GetAbilityDamage..................=> 0
+GetAutoCastState..................=> false
+GetBehavior.......................=> 8
+GetCastPoint......................=> 0
+GetCastRange......................=> 165
+GetCaster.........................=> table: 0x00331ef8
+GetChannelTime....................=> 0
+GetChannelledManaCostPerSecond....=> 0
+GetCooldownTimeRemaining..........=> 0
+GetDamageType.....................=> 0
+GetHeroLevelRequiredToUpgrade.....=> 2147483647
+GetLevel..........................=> 1
+GetManaCost.......................=> 0
+GetMaxLevel.......................=> 0
+GetName...........................=> item_tango
+GetSpecialValueFloat..............function call failed
+GetSpecialValueInt................function call failed
+GetTargetFlags....................=> 0
+GetTargetTeam.....................=> 4
+GetTargetType.....................=> 192
+GetToggleState....................=> false
+IsActivated.......................=> true
+IsAttributeBonus..................=> false
+IsChanneling......................=> false
+IsCooldownReady...................=> true
+IsFullyCastable...................=> true
+IsHidden..........................=> false
+IsInAbilityPhase..................=> false
+IsItem............................=> true
+IsNull............................=> false
+IsOwnersManaEnough................=> true
+IsPassive.........................=> false
+IsStealable.......................=> true
+IsStolen..........................=> false
+IsToggle..........................=> false
+IsTrained.........................=> true
+ProcsMagicStick...................=> false
+ToggleAutoCast....................function call failed
+UpgradeAbility....................function call failed
