@@ -5,6 +5,7 @@ require( GetScriptDirectory().."/ability_item_usage_generic" )
 require( GetScriptDirectory().."/util" )
 
 local RAZE_HIT_HERO_SCORE = 1
+local RAZE_KILL_HERO_SCORE = 5
 local RAZE_KILL_CREEP_SCORE = 1
 local RAZE_FULL_MANA_SCORE = 1
 
@@ -23,6 +24,7 @@ function razeScore(bot, raze)
   local castRange = raze:GetCastRange()
   local castPoint = raze:GetCastPoint()
   local damage = raze:GetAbilityDamage()
+  local damageType = raze:GetDamageType()
   local aoe = 250
   local location = bot:GetLocation()
   location[1] = location[1] + math.cos(angle)*castRange
@@ -35,13 +37,17 @@ function razeScore(bot, raze)
     end
   end
   local heroesHit = 0
+  local heroesKilled = 0
   local heroes = bot:GetNearbyHeroes(castRange + aoe, true, BOT_MODE_NONE)
   for i,hero in ipairs(heroes) do
     if GetUnitToLocationDistance(hero, location) < aoe and not hero:IsMagicImmune() and not hero:IsInvulnerable() then
       heroesHit = heroesHit + 1
+      if hero:GetActualDamage(damage, damageType) >= hero:GetHealth() then
+        heroesKilled = heroesKilled + 1
+      end
     end
   end
-  local score = creepsHit*RAZE_KILL_CREEP_SCORE + heroesHit*RAZE_HIT_HERO_SCORE
+  local score = creepsHit*RAZE_KILL_CREEP_SCORE + heroesHit*RAZE_HIT_HERO_SCORE + heroesKilled*RAZE_KILL_HERO_SCORE
   if bot:GetMana() == bot:GetMaxMana() then
     score = score + RAZE_FULL_MANA_SCORE
   end

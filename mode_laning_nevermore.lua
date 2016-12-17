@@ -78,17 +78,44 @@ function LaneLocationScore(bot, location, laneData)
   local enemyTowersInRange = #Filter(laneData.enemyTowers, function(tower) 
     return GetUnitToLocationDistance(tower, location) < TOWER_SAFETY_DISTANCE
   end)
-  local enemyHeroesInRange = #Filter(laneData.enemyHeroes, function(hero) 
+  
+  local enemyHeroesInRange = Filter(laneData.enemyHeroes, function(hero) 
     return GetUnitToLocationDistance(hero, location) < ATTACK_CREEP_RANGE
   end)
+  local enemyHeroesScore = HeroScore(bot, enemyHeroesInRange)
 
   local score = lowEnemyCreepsInRange * LOW_ENEMY_CREEP_IN_RANGE_SCORE
   score = score + enemyCreepsClose * ENEMY_CREEP_CLOSE_SCORE
   score = score + enemyCreepsInRange * ENEMY_CREEP_IN_RANGE_SCORE
   score = score + allyCreepsClose * ALLIED_CREEP_CLOSE_SCORE
   score = score + enemyTowersInRange * IN_RANGE_OF_ENEMY_TOWER_SCORE
-  score = score + enemyHeroesInRange * -2
+  score = score + enemyHeroesScore
   return score
+end
+
+function HeroScore(bot, enemyHeroes)
+  if #enemyHeroes == 0 then
+    return 0
+  end
+  local enemyHeroesDamage = 0
+  local enemyHeroesHealth = 0
+  local ownHeroDamage = 0
+  local ownHeroHealth = bot:GetHealth()
+  for i,hero in ipairs(enemyHeroes) do
+    enemyHeroesDamage = enemyHeroesDamage + hero:GetEstimatedDamageToTarget(false, bot, 1, DAMAGE_TYPE_PHYSICAL)
+    enemyHeroesHealth = enemyHeroesHealth + hero:GetHealth()
+    ownHeroDamage = math.max(ownHeroDamage, bot:GetEstimatedDamageToTarget(false, hero, 1, DAMAGE_TYPE_PHYSICAL))
+    -- Take into account nearby creeps and highground
+  end
+  local enemyDamagePercentage = enemyHeroesDamage / ownHeroHealth
+  local ownDamagePercentage = ownHeroDamage / enemyHeroesHealth
+  if ownDamagePercentage > enemyDamagePercentage then
+    return 2
+  elseif enemyDamagePercentage > ownDamagePercentage then
+    return -2
+  else
+    return 0
+  end
 end
 
 function Think()
@@ -96,6 +123,16 @@ function Think()
   function f()
     local bot = GetBot()
     local laneData = GetLaneData(bot)
+    local enemyHeroesInRange = Filter(laneData.enemyHeroes, function(hero) 
+      return GetUnitToUnitDistance(hero, bot) < ATTACK_CREEP_RANGE + 100
+    end)
+    local enemyHeroesScore = HeroScore(bot, enemyHeroesInRange)
+    
+    if enemyHeroesScore ~= 0 then print("Hero score: "..enemyHeroesScore) end
+    ------------------------------------
+
+    ----------------------------------------------
+    
     if not bot:IsUsingAbility() then
       -- Look for an enemy creep to attack
       local enemyCreeps = bot:GetNearbyCreeps(700, true)
