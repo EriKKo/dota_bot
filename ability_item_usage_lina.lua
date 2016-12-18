@@ -1,6 +1,7 @@
 
 ----------------------------------------------------------------------------------------------------
 
+require( GetScriptDirectory().."/ability_item_usage_generic" )
 require( GetScriptDirectory().."/util" )
 
 

@@ -1,21 +1,21 @@
 
 --require( GetScriptDirectory().."/util" )
 
--- Radiant creep names
--- "npc_dota_creep_goodguys_melee"
--- "npc_dota_creep_goodguys_ranged"
--- Dire creep names
--- "npc_dota_creep_badguys_melee"
--- "npc_dota_creep_badguys_ranged"
-
+local CREEP_THREAT_RANGES = {}
+CREEP_THREAT_RANGES["npc_dota_creep_goodguys_melee"] = 200
+CREEP_THREAT_RANGES["npc_dota_creep_badguys_melee"] = 200
+CREEP_THREAT_RANGES["npc_dota_creep_goodguys_ranged"] = 600
+CREEP_THREAT_RANGES["npc_dota_creep_badguys_ranged"] = 600
+CREEP_THREAT_RANGES["npc_dota_goodguys_siege"] = 600
+CREEP_THREAT_RANGES["npc_dota_badguys_siege"] = 600
+local HERO_THREAT_RANGE = 600
+local TOWER_THREAT_RANGE = 900
 local MAX_SEARCH_RADIUS = 1600
-local CREEP_ATTACK_DURATION = 1.7
+local LASTHIT_DURATION = 1.7
 local LOCATION_NOISE = 100
 local LANE_RADIUS = 700
 local EXPERIENCE_RADIUS = 1200
 local CREEP_CLOSE_RANGE = 200
-local TOWER_SAFETY_DISTANCE = 900
-local ATTACK_CREEP_RANGE = 500
 local LOW_CREEP_HP_MAX = 300
 local INFINITY = 1000000
 
@@ -47,6 +47,27 @@ function GetLaneData(bot)
   return laneData
 end
 
+function GetThreat(source, target, sourceLocation, targetLocation)
+  sourceLocation = sourceLocation or source:GetLocation()
+  targetLocation = targetLocation or target:GetLocation()
+  local threat = source:GetEstimatedDamageToTarget(false, target, 1, DAMAGE_TYPE_PHYSICAL) / target:GetHealth()
+  if GetHeightLevel(sourceLocation) > GetHeightLevel(targetLocation) then
+    -- Source has lowground
+    threat = 0.75 * threat
+  end
+  return threat
+end
+
+function GetThreatRange(unit)
+  if unit:IsTower() then
+    return TOWER_THREAT_RANGE
+  elseif unit:IsCreep() then
+    return CREEP_THREAT_RANGES[unit:GetUnitName()]
+  else
+    return HERO_THREAT_RANGE
+  end
+end
+
 function FrontLineLocation(bot)
   local front = 0.55 -- Should be based on the front tower
   -- Should also be made to not towerdive
@@ -64,55 +85,78 @@ end
 
 function LaneLocationScore(bot, location, laneData)
   local lowEnemyCreepsInRange = #Filter(laneData.enemyCreeps, function(creep) 
-    return GetUnitToLocationDistance(creep, location) < ATTACK_CREEP_RANGE and creep:GetHealth() < LOW_CREEP_HP_MAX
+    return GetUnitToLocationDistance(creep, location) < HERO_THREAT_RANGE and creep:GetHealth() < LOW_CREEP_HP_MAX
   end)
   local enemyCreepsClose = #Filter(laneData.enemyCreeps, function(creep) 
     return GetUnitToLocationDistance(creep, location) < CREEP_CLOSE_RANGE
   end)
   local enemyCreepsInRange = #Filter(laneData.enemyCreeps, function(creep) 
-    return GetUnitToLocationDistance(creep, location) < ATTACK_CREEP_RANGE
+    return GetUnitToLocationDistance(creep, location) < HERO_THREAT_RANGE
   end)
   local allyCreepsClose = #Filter(laneData.allyCreeps, function(creep) 
     return GetUnitToLocationDistance(creep, location) < CREEP_CLOSE_RANGE
   end)
   local enemyTowersInRange = #Filter(laneData.enemyTowers, function(tower) 
-    return GetUnitToLocationDistance(tower, location) < TOWER_SAFETY_DISTANCE
+    return GetUnitToLocationDistance(tower, location) < TOWER_THREAT_RANGE
   end)
-  
-  local enemyHeroesInRange = Filter(laneData.enemyHeroes, function(hero) 
-    return GetUnitToLocationDistance(hero, location) < ATTACK_CREEP_RANGE
-  end)
-  local enemyHeroesScore = HeroScore(bot, enemyHeroesInRange)
+
+  local heroThreatScore = GetHeroThreatScore(bot, location, laneData)
 
   local score = lowEnemyCreepsInRange * LOW_ENEMY_CREEP_IN_RANGE_SCORE
   score = score + enemyCreepsClose * ENEMY_CREEP_CLOSE_SCORE
   score = score + enemyCreepsInRange * ENEMY_CREEP_IN_RANGE_SCORE
   score = score + allyCreepsClose * ALLIED_CREEP_CLOSE_SCORE
   score = score + enemyTowersInRange * IN_RANGE_OF_ENEMY_TOWER_SCORE
-  score = score + enemyHeroesScore
+  score = score + heroThreatScore
   return score
 end
 
-function HeroScore(bot, enemyHeroes)
-  if #enemyHeroes == 0 then
+function GetHeroThreatScore(bot, location, laneData)
+  local enemyHeroesInRange = Filter(laneData.enemyHeroes, function(hero)
+      return GetUnitToLocationDistance(hero, location) < GetThreatRange(hero)
+    end)
+  if #enemyHeroesInRange == 0 then
     return 0
   end
-  local enemyHeroesDamage = 0
-  local enemyHeroesHealth = 0
-  local ownHeroDamage = 0
-  local ownHeroHealth = bot:GetHealth()
-  for i,hero in ipairs(enemyHeroes) do
-    enemyHeroesDamage = enemyHeroesDamage + hero:GetEstimatedDamageToTarget(false, bot, 1, DAMAGE_TYPE_PHYSICAL)
-    enemyHeroesHealth = enemyHeroesHealth + hero:GetHealth()
-    ownHeroDamage = math.max(ownHeroDamage, bot:GetEstimatedDamageToTarget(false, hero, 1, DAMAGE_TYPE_PHYSICAL))
-    -- Take into account nearby creeps and highground
+  local incomingThreat = 0
+  local outgoingThreat = 0
+  local enemyCreepsNearby = Filter(laneData.enemyCreeps, function(creep)
+      return GetUnitToLocationDistance(creep, location) < GetThreatRange(creep)
+    end)
+  for _,creep in ipairs(enemyCreepsNearby) do
+    incomingThreat = incomingThreat + GetThreat(creep, bot, nil, location)
   end
-  local enemyDamagePercentage = enemyHeroesDamage / ownHeroHealth
-  local ownDamagePercentage = ownHeroDamage / enemyHeroesHealth
-  if ownDamagePercentage > enemyDamagePercentage then
-    return 2
-  elseif enemyDamagePercentage > ownDamagePercentage then
-    return -2
+  local enemyTowersNearby = Filter(laneData.enemyTowers, function(tower)
+      return GetUnitToLocationDistance(tower, location) < GetThreatRange(tower)
+    end)
+  for _,tower in ipairs(enemyTowersNearby) do
+    incomingThreat = incomingThreat + GetThreat(tower, bot, nil, location)
+  end
+  
+  for _,enemyHero in ipairs(enemyHeroesInRange) do
+    incomingThreat = incomingThreat + GetThreat(enemyHero, bot, nil, location)
+    local outgoingHeroThreat = GetThreat(bot, enemyHero, location)
+    
+    local allyCreepsNearEnemyHero = Filter(laneData.allyCreeps, function(creep)
+        return GetUnitToUnitDistance(creep, hero) < GetThreatRange(creep)
+      end)
+    for _,creep in ipairs(allyCreepsNearEnemyHero) do
+      outgoingHeroThreat = outgoingHeroThreat + GetThreat(creep, enemyHero)
+    end
+    
+    local allyTowersNearEnemyHero = Filter(laneData.allyTowers, function(tower)
+        return GetUnitToUnitDistance(tower, enemyHero) < GetThreatRange(tower)
+      end)
+    for _,tower in ipairs(allyTowersNearEnemyHero) do
+      outgoingHeroThreat = outgoingHeroThreat + GetThreat(tower, enemyHero)
+    end
+    outgoingThreat = math.max(outgoingThreat, outgoingHeroThreat)
+  end
+  
+  if outgoingThreat > incomingThreat then
+    return outgoingThreat / incomingThreat
+  elseif incomingThreat > outgoingThreat then
+    return -incomingThreat / outgoingThreat
   else
     return 0
   end
@@ -123,32 +167,22 @@ function Think()
   function f()
     local bot = GetBot()
     local laneData = GetLaneData(bot)
-    local enemyHeroesInRange = Filter(laneData.enemyHeroes, function(hero) 
-      return GetUnitToUnitDistance(hero, bot) < ATTACK_CREEP_RANGE + 100
-    end)
-    local enemyHeroesScore = HeroScore(bot, enemyHeroesInRange)
-    
-    if enemyHeroesScore ~= 0 then print("Hero score: "..enemyHeroesScore) end
-    ------------------------------------
-
-    ----------------------------------------------
     
     if not bot:IsUsingAbility() then
       -- Look for an enemy creep to attack
       local enemyCreeps = bot:GetNearbyCreeps(700, true)
       local attackTarget = nil
       for _,creep in ipairs(enemyCreeps) do
-        if creep:GetHealth() <= bot:GetEstimatedDamageToTarget(true, creep, CREEP_ATTACK_DURATION, DAMAGE_TYPE_PHYSICAL) then
+        if creep:GetHealth() <= bot:GetEstimatedDamageToTarget(true, creep, LASTHIT_DURATION, DAMAGE_TYPE_PHYSICAL) then
            attackTarget = creep
         end
       end
       
       -- Look for an enemy hero to harass
       if not attackTarget then
-        local enemyHeroes = bot:GetNearbyHeroes(600, true, BOT_MODE_NONE)
+        local enemyHeroes = bot:GetNearbyHeroes(HERO_THREAT_RANGE, true, BOT_MODE_NONE)
         for _,hero in ipairs(enemyHeroes) do
-          local enemyCreepsInRange = #(bot:GetNearbyCreeps(500, true))
-          if enemyCreepsInRange <= 1 then
+          if GetHeroThreatScore(bot, bot:GetLocation(), laneData) > 0 then
             attackTarget = hero
           end
         end
@@ -158,7 +192,7 @@ function Think()
       if not attackTarget then
         local alliedCreeps = bot:GetNearbyCreeps(700, false)
         for _,creep in ipairs(alliedCreeps) do
-        if creep:GetHealth() < math.min(creep:GetMaxHealth() / 2, bot:GetEstimatedDamageToTarget(true, creep, CREEP_ATTACK_DURATION, DAMAGE_TYPE_PHYSICAL)) then
+        if creep:GetHealth() < math.min(creep:GetMaxHealth() / 2, bot:GetEstimatedDamageToTarget(true, creep, LASTHIT_DURATION, DAMAGE_TYPE_PHYSICAL)) then
            attackTarget = creep
         end
       end
