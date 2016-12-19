@@ -24,7 +24,6 @@ itemFunctions["item_bottle"] = function(bot, item)
 end
 
 itemFunctions["item_courier"] = function(bot, item)
-  print("Hello")
   bot:Action_UseAbility(item)
 end
 

@@ -1,5 +1,15 @@
 
-function printObject(object)
+function Filter(t, f)
+  local res = {}
+  for _,v in ipairs(t) do
+    if f(v) then
+      res[#res + 1] = v
+    end
+  end
+  return res
+end
+
+function PrintObject(object)
   local function valueToString(v)
     if type(v) == "function" then
       local value = "function call failed"
@@ -38,6 +48,6 @@ function printObject(object)
   print()
 end
 
-function printLocation(location)
+function PrintLocation(location)
   print(math.floor(location[1]),math.floor(location[2]))
 end
