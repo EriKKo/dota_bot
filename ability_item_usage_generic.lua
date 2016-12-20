@@ -16,6 +16,7 @@ end
 ----------------------------------------------------------------------------------------------------
 
 local lastHealingSalveTime = -100 -- To prevent using multiple healing salves at once
+local lastStick = -100 -- To prevent spamming stick/wand TODO Need a cleaner way
 local itemFunctions = {}
 itemFunctions["item_bottle"] = function(bot, item)
   if bot:TimeSinceDamagedByAnyHero() > 2 and bot:GetMaxMana() - bot:GetMana() >= 60 and bot:GetMaxHealth() - bot:GetHealth() >= 90 then
@@ -42,7 +43,8 @@ itemFunctions["item_faerie_fire"] = function(bot, item)
 end
 
 itemFunctions["item_magic_stick"] = function(bot, item)
-  if bot:GetHealth() <= 200 then
+  if GameTime() - lastStick > 5 and bot:GetHealth() <= 200 then
+    lastStick = GameTime()
     bot:Action_UseAbility(item)
   end
 end

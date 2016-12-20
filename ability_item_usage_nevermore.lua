@@ -2,7 +2,6 @@
 ----------------------------------------------------------------------------------------------------
 
 require( GetScriptDirectory().."/ability_item_usage_generic" )
-require( GetScriptDirectory().."/util" )
 
 local RAZE_HIT_HERO_SCORE = 1
 local RAZE_KILL_HERO_SCORE = 5

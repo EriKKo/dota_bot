@@ -1,5 +1,48 @@
+local module = {}
 
-function Filter(t, f)
+function module.Deque()
+  local q = {first = 0, last = -1}
+  
+  function q.PeekFirst()
+    return q[q.first]
+  end
+  
+  function q.PeekLast()
+    return q[q.last]
+  end
+  
+  function q.PollFirst()
+    local res = q[q.first]
+    if q.first <= q.last then
+      q[q.first] = nil
+      q.first = q.first + 1
+    end
+    return res
+  end
+  
+  function q.PollLast()
+    local res = q[q.last]
+    if q.first <= q.last then
+      q[q.last] = nil
+      q.last = q.last - 1
+    end
+    return res
+  end
+  
+  function q.AddFirst(value)
+    q.first = q.first - 1
+    q[q.first] = value
+  end
+  
+  function q.AddLast(value)
+    q.last = q.last + 1
+    q[q.last] = value
+  end
+  
+  return q
+end
+
+function module.Filter(t, f)
   local res = {}
   for _,v in ipairs(t) do
     if f(v) then
@@ -9,7 +52,7 @@ function Filter(t, f)
   return res
 end
 
-function PrintObject(object)
+function module.PrintObject(object)
   local function valueToString(v)
     if type(v) == "function" then
       local value = "function call failed"
@@ -48,6 +91,8 @@ function PrintObject(object)
   print()
 end
 
-function PrintLocation(location)
+function module.PrintLocation(location)
   print(math.floor(location[1]),math.floor(location[2]))
 end
+
+return module
