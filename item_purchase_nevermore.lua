@@ -1,18 +1,16 @@
 
 
-local tableItemsToBuy = { 
-				"item_tango",
+local tableItemsToBuy = {
+				"item_flask",
 				"item_flask",
 				"item_circlet",
-        "item_branches",
-				"item_branches",
+        "item_circlet",
         "item_faerie_fire",
 				"item_slippers",
 				"item_recipe_wraith_band",
-        "item_infused_raindrop",
-				"item_circlet",
         "item_slippers",
 				"item_recipe_wraith_band",
+        "item_infused_raindrop",
         "item_boots",
         "item_sobi_mask",
         "item_ring_of_protection",

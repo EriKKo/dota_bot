@@ -15,10 +15,9 @@ end
 
 ----------------------------------------------------------------------------------------------------
 
-local lastStick = -100 -- To prevent spamming stick/wand TODO Need a cleaner way
 local itemFunctions = {}
 itemFunctions["item_bottle"] = function(bot, item)
-  if bot:TimeSinceDamagedByAnyHero() > 2 and bot:GetMaxMana() - bot:GetMana() >= 60 and bot:GetMaxHealth() - bot:GetHealth() >= 90 then
+  if not bot:HasModifier("modifier_bottle_regeneration") and item:GetCurrentCharges() > 0 and bot:TimeSinceDamagedByAnyHero() > 2 and bot:GetMaxMana() - bot:GetMana() >= 60 and bot:GetMaxHealth() - bot:GetHealth() >= 90 then
     bot:Action_UseAbility(item)
   end
 end
@@ -51,8 +50,7 @@ itemFunctions["item_faerie_fire"] = function(bot, item)
 end
 
 itemFunctions["item_magic_stick"] = function(bot, item)
-  if GameTime() - lastStick > 5 and bot:GetHealth() <= 200 then
-    lastStick = GameTime()
+  if item:GetCurrentCharges() > 0 and bot:GetHealth() <= 200 then
     bot:Action_UseAbility(item)
   end
 end

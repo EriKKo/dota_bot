@@ -13,6 +13,8 @@ local INFINITY = 1000000
 local LASTHIT_DURATION = 0.8
 
 local AGGRESSIVENESS = 1
+local LASTHIT_SCORE = 0.5
+local DENY_SCORE = 0.25
 local LOW_ENEMY_CREEP_IN_RANGE_SCORE = 0.02
 local ENEMY_CREEP_IN_EXP_RANGE_SCORE = 0
 local CREEP_CLOSE_SCORE = -0.01
@@ -160,6 +162,25 @@ function GetLaneLocationScore(bot, botLocation)
   return score
 end
 
+function GetMoveTarget(bot)
+  local frontLineLocation = GetFrontLineLocation(bot)
+  frontLineLocation[1] = frontLineLocation[1] + RandomFloat(0, LOCATION_NOISE)
+  frontLineLocation[2] = frontLineLocation[2] + RandomFloat(0, LOCATION_NOISE)
+  local bestLocation = frontLineLocation
+  for r = 0.2, 1 ,0.2 do
+    for a = 0, 2*math.pi, 2*math.pi / 12 do
+      local x = math.cos(a) * r * LANE_RADIUS
+      local y = math.sin(a) * r * LANE_RADIUS
+      local location = Vector(frontLineLocation[1] + x, frontLineLocation[2] + y, frontLineLocation[3])
+      if IsLocationPassable(location) and GetLaneLocationScore(bot, location) > GetLaneLocationScore(bot, bestLocation) then
+        bestLocation = location
+      end
+    end
+  end
+  local locationChangeScore = GetLaneLocationScore(bot, bestLocation) - GetLaneLocationScore(bot)
+  return bestLocation, locationChangeScore
+end
+
 function GetHarassTarget(bot)
   local harassTarget = nil
   local harassScore = -INFINITY
@@ -190,6 +211,8 @@ end
 
 function GetLastHitTarget(bot, enemy)
   local creeps = enemy and laneData.enemyCreeps or laneData.allyCreeps
+  local target = nil
+  local score = -INFINITY
   for _,creep in ipairs(creeps) do
     if GetUnitToUnitDistance(creep, bot) < HERO_ATTACK_RANGE and (enemy or creep:GetHealth() < creep:GetMaxHealth() / 2) then
       local damage = 0
@@ -200,10 +223,12 @@ function GetLastHitTarget(bot, enemy)
       end
       damage = damage + bot:GetEstimatedDamageToTarget(false, creep, LASTHIT_DURATION, DAMAGE_TYPE_PHYSICAL)
       if damage >= creep:GetHealth() then
-        return creep
+        target = creep
+        score = enemy and LASTHIT_SCORE or DENY_SCORE
       end
     end
   end
+  return target, score
 end
 
 function Think()
@@ -214,43 +239,31 @@ function Think()
     
     if not bot:IsUsingAbility() then
       -- Look for an enemy creep to attack
-      local attackTarget = GetLastHitTarget(bot, true)
-      
-      -- Look for an allied creep to deny
-      if not attackTarget then
-        attackTarget = GetLastHitTarget(bot, false)
-      end
-      
-      if attackTarget then
-        bot:Action_AttackUnit(attackTarget, false)
-      else
-        local frontLineLocation = GetFrontLineLocation(bot)
-        frontLineLocation[1] = frontLineLocation[1] + RandomFloat(0, LOCATION_NOISE)
-        frontLineLocation[2] = frontLineLocation[2] + RandomFloat(0, LOCATION_NOISE)
-        local bestLocation = frontLineLocation
-        for r = 0.2, 1 ,0.2 do
-          for a = 0, 2*math.pi, 2*math.pi / 12 do
-            local x = math.cos(a) * r * LANE_RADIUS
-            local y = math.sin(a) * r * LANE_RADIUS
-            local location = Vector(frontLineLocation[1] + x, frontLineLocation[2] + y, frontLineLocation[3])
-            if IsLocationPassable(location) and GetLaneLocationScore(bot, location) > GetLaneLocationScore(bot, bestLocation) then
-              bestLocation = location
-            end
-          end
-        end
-        local locationChangeScore = GetLaneLocationScore(bot, bestLocation) - GetLaneLocationScore(bot)
-        local harassTarget, harassScore = GetHarassTarget(bot)
-        --print(locationChangeScore, harassScore)
-        if locationChangeScore > harassScore then
-          -- TODO if score too low change facing instead
-          bot:Action_MoveToLocation(bestLocation)
+      local lasthitTarget, lasthitScore = GetLastHitTarget(bot, true)
+      local denyTarget, denyScore = GetLastHitTarget(bot, false)
+      local moveTarget, moveScore = GetMoveTarget(bot)
+      local harassTarget, harassScore = GetHarassTarget(bot)
+      print("Lasthit", lasthitScore)
+      print("Deny", denyScore)
+      print("Move", moveScore)
+      print("Harass", harassScore)
+      local bestScore = math.max(lasthitScore, math.max(denyScore, math.max(moveScore, harassScore)))
+      if moveScore == bestScore then
+        -- Move
+        bot:Action_MoveToLocation(moveTarget)
+      elseif harassScore == bestScore then
+        -- Harass
+        if GetUnitToUnitDistance(bot, harassTarget) < HERO_ATTACK_RANGE then
+          bot:Action_AttackUnit(harassTarget, false)
         else
-          if GetUnitToUnitDistance(bot, harassTarget) < HERO_ATTACK_RANGE then
-            bot:Action_AttackUnit(harassTarget, false)
-          else
-            bot:Action_MoveToLocation(harassTarget:GetLocation())
-          end
+          bot:Action_MoveToLocation(harassTarget:GetLocation())
         end
+      elseif lasthitScore == bestScore then
+        -- Lasthit
+        bot:Action_AttackUnit(lasthitTarget, false)
+      else
+        -- Deny
+        bot:Action_AttackUnit(denyTarget, false)
       end
     end
   end
