@@ -11,12 +11,11 @@ local function GetLocationToLocationDistance(l1, l2)
 end
 
 local function MoveAlongLine(source, target, distance)
-  local dv = Vector(target[1] - source[1], target[2] - source[2], target[3] - source[3])
-  local sum = dv[1] + dv[2] + dv[3]
-  dv[1] = dv[1] / sum
-  dv[2] = dv[2] / sum
-  dv[3] = dv[3] / sum
-  return Vector(source[1] + dv[1] * distance, source[2] + dv[2] * distance, source[3] + dv[3] * distance)
+  local dv = Vector(target[1] - source[1], target[2] - source[2])
+  local len = math.sqrt(dv[1]*dv[1] + dv[2]*dv[2])
+  dv[1] = dv[1] / len
+  dv[2] = dv[2] / len
+  return Vector(source[1] + dv[1] * distance, source[2] + dv[2] * distance, source[3])
 end
 
 return {

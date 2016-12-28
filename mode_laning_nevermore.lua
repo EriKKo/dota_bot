@@ -1,8 +1,9 @@
 local Deque = require(GetScriptDirectory() .. "/lib/deque").Deque
 local threat = require(GetScriptDirectory() .. "/lib/threat")
 local geometry = require(GetScriptDirectory() .. "/lib/geometry")
+local attack = require(GetScriptDirectory() .. "/lib/attack")
 
-local HERO_ATTACK_RANGE = 600
+local HERO_ATTACK_RANGE = 550
 local MAX_SEARCH_RADIUS = 1600
 local LOCATION_NOISE = 100
 local LANE_RADIUS = 900
@@ -184,7 +185,6 @@ end
 function GetHarassTarget(bot)
   local harassTarget = nil
   local harassScore = -INFINITY
-  
   for _,enemyHero in ipairs(laneData.enemyHeroes) do
     local harassLocation = bot:GetLocation()
     if GetUnitToUnitDistance(bot, enemyHero) > HERO_ATTACK_RANGE then
@@ -213,18 +213,20 @@ function GetLastHitTarget(bot, enemy)
   local creeps = enemy and laneData.enemyCreeps or laneData.allyCreeps
   local target = nil
   local score = -INFINITY
-  for _,creep in ipairs(creeps) do
-    if GetUnitToUnitDistance(creep, bot) < HERO_ATTACK_RANGE and (enemy or creep:GetHealth() < creep:GetMaxHealth() / 2) then
-      local damage = 0
-      local damageHistory = creepDamageHistory[creep]
-      -- TODO should ignore damage done be the bot itself during this period
-      for i = damageHistory.first,damageHistory.last do
-        damage = damage + damageHistory[i].damage
-      end
-      damage = damage + bot:GetEstimatedDamageToTarget(false, creep, LASTHIT_DURATION, DAMAGE_TYPE_PHYSICAL)
-      if damage >= creep:GetHealth() then
-        target = creep
-        score = enemy and LASTHIT_SCORE or DENY_SCORE
+  if attack.CanAttack(bot) then
+    for _,creep in ipairs(creeps) do
+      if GetUnitToUnitDistance(creep, bot) < HERO_ATTACK_RANGE and (enemy or creep:GetHealth() < creep:GetMaxHealth() / 2) then
+        local damage = 0
+        local damageHistory = creepDamageHistory[creep]
+        -- TODO should ignore damage done be the bot itself during this period
+        for i = damageHistory.first,damageHistory.last do
+          damage = damage + damageHistory[i].damage
+        end
+        damage = damage + bot:GetEstimatedDamageToTarget(false, creep, LASTHIT_DURATION, DAMAGE_TYPE_PHYSICAL)
+        if damage >= creep:GetHealth() then
+          target = creep
+          score = enemy and LASTHIT_SCORE or DENY_SCORE
+        end
       end
     end
   end
@@ -237,33 +239,29 @@ function Think()
     local bot = GetBot()
     CalculateLaneData(bot)
     
-    if not bot:IsUsingAbility() then
+    if not bot:IsUsingAbility() and not attack.IsAttacking(bot) then
       -- Look for an enemy creep to attack
       local lasthitTarget, lasthitScore = GetLastHitTarget(bot, true)
       local denyTarget, denyScore = GetLastHitTarget(bot, false)
       local moveTarget, moveScore = GetMoveTarget(bot)
       local harassTarget, harassScore = GetHarassTarget(bot)
-      print("Lasthit", lasthitScore)
-      print("Deny", denyScore)
-      print("Move", moveScore)
-      print("Harass", harassScore)
+      --print("Lasthit", lasthitScore)
+      --print("Deny", denyScore)
+      --print("Move", moveScore)
+      --print("Harass", harassScore)
       local bestScore = math.max(lasthitScore, math.max(denyScore, math.max(moveScore, harassScore)))
       if moveScore == bestScore then
         -- Move
         bot:Action_MoveToLocation(moveTarget)
       elseif harassScore == bestScore then
         -- Harass
-        if GetUnitToUnitDistance(bot, harassTarget) < HERO_ATTACK_RANGE then
-          bot:Action_AttackUnit(harassTarget, false)
-        else
-          bot:Action_MoveToLocation(harassTarget:GetLocation())
-        end
+        attack.Attack(bot, harassTarget)
       elseif lasthitScore == bestScore then
         -- Lasthit
-        bot:Action_AttackUnit(lasthitTarget, false)
+        attack.Attack(bot, lasthitTarget)
       else
         -- Deny
-        bot:Action_AttackUnit(denyTarget, false)
+        attack.Attack(bot, denyTarget)
       end
     end
   end

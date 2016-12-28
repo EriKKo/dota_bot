@@ -7,14 +7,6 @@ module( "ability_item_usage_generic", package.seeall )
 
 ----------------------------------------------------------------------------------------------------
 
-function AbilityUsageThink()
-
-	--print( "Generic.AbilityUsageThink" );
-
-end
-
-----------------------------------------------------------------------------------------------------
-
 local itemFunctions = {}
 itemFunctions["item_bottle"] = function(bot, item)
   if not bot:HasModifier("modifier_bottle_regeneration") and item:GetCurrentCharges() > 0 and bot:TimeSinceDamagedByAnyHero() > 2 and bot:GetMaxMana() - bot:GetMana() >= 60 and bot:GetMaxHealth() - bot:GetHealth() >= 90 then

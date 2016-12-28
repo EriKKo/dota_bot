@@ -1,6 +1,7 @@
+local attack = require(GetScriptDirectory() .. "/lib/attack")
 
 function GetClosestEnemy(bot)
-  local enemies = bot:GetNearbyHeroes(1000, true, BOT_MODE_NONE)
+  local enemies = bot:GetNearbyHeroes(1600, true, BOT_MODE_NONE)
   local closestEnemy = nil
   for _,enemy in pairs(enemies) do
     if not closestEnemy or GetUnitToUnitDistance(enemy, bot) < GetUnitToUnitDistance(closestEnemy, bot) then
@@ -17,7 +18,7 @@ function Think()
     local bot = GetBot()
     local enemy = GetClosestEnemy(bot)
     if enemy then
-      bot:Action_AttackUnit(enemy, false)
+      attack.Attack(bot, enemy)
     end
   end
   local status, err = pcall(f)
