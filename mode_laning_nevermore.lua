@@ -11,8 +11,8 @@ local EXPERIENCE_RADIUS = 1200
 local CREEP_CLOSE_RANGE = 200
 local LOW_CREEP_HP_MAX = 200
 local INFINITY = 1000000
-local LASTHIT_DURATION = 0.8
 
+local LASTHIT_DAMAGE_MARGIN = 15
 local AGGRESSIVENESS = 1
 local LASTHIT_SCORE = 0.5
 local DENY_SCORE = 0.25
@@ -31,7 +31,7 @@ local laneData = {
 local aggroData = {}
 local distanceToClosestTarget = {}
 local creepHealth = {}
-local creepDamageHistory = {}
+local creepDamagePrediction = {}
 
 function CalculateLaneData(bot)
   laneData.allyCreeps = bot:GetNearbyCreeps(MAX_SEARCH_RADIUS, false)
@@ -42,25 +42,27 @@ function CalculateLaneData(bot)
   laneData.enemyTowers = bot:GetNearbyTowers(MAX_SEARCH_RADIUS, true)
   
   local gameTime = GameTime()
-  local newCreepDamageHistory = {}
+  local newCreepDamagePrediction = {}
+  -- TODO ignore hero-inflicted damage / damage outside possible ranges
   function update(creeps)
     for _,creep in ipairs(creeps) do
       local newHealth = creep:GetHealth()
       local oldHealth = creepHealth[creep] or newHealth
       creepHealth[creep] = newHealth
-      local damageHistory = creepDamageHistory[creep] or Deque()
+      local damagePrediction = creepDamagePrediction[creep] or Deque()
       if newHealth < oldHealth then
-        damageHistory.AddLast({damage = oldHealth - newHealth, time = gameTime})
+        damagePrediction.AddLast({damage = oldHealth - newHealth, time = gameTime + 1})
+        --print(oldHealth - newHealth)
       end
-      while damageHistory.PeekFirst() and gameTime - damageHistory.PeekFirst().time > LASTHIT_DURATION do
-        damageHistory.PollFirst()
+      while damagePrediction.PeekFirst() and gameTime + 0.05 > damagePrediction.PeekFirst().time do
+        damagePrediction.PollFirst()
       end
-      newCreepDamageHistory[creep] = damageHistory
+      newCreepDamagePrediction[creep] = damagePrediction
     end
   end
   update(laneData.allyCreeps)
   update(laneData.enemyCreeps)
-  creepDamageHistory = newCreepDamageHistory
+  creepDamagePrediction = newCreepDamagePrediction
   
   aggroData = {}
   distanceToClosestTarget = {}
@@ -215,15 +217,24 @@ function GetLastHitTarget(bot, enemy)
   local score = -INFINITY
   if attack.CanAttack(bot) then
     for _,creep in ipairs(creeps) do
-      if GetUnitToUnitDistance(creep, bot) < HERO_ATTACK_RANGE and (enemy or creep:GetHealth() < creep:GetMaxHealth() / 2) then
-        local damage = 0
-        local damageHistory = creepDamageHistory[creep]
-        -- TODO should ignore damage done be the bot itself during this period
-        for i = damageHistory.first,damageHistory.last do
-          damage = damage + damageHistory[i].damage
+      local dist = GetUnitToUnitDistance(creep, bot)
+      if dist < threat.GetThreatRange(bot) and (enemy or creep:GetHealth() < creep:GetMaxHealth() / 2) then
+        local attackHitTime = GameTime() +  bot:GetAttackPoint() / bot:GetAttackSpeed() + math.min(dist, HERO_ATTACK_RANGE) / 1200
+        if dist > HERO_ATTACK_RANGE then
+          attackHitTime = attackHitTime + (HERO_ATTACK_RANGE - dist) / bot:GetCurrentMovementSpeed()
         end
-        damage = damage + bot:GetEstimatedDamageToTarget(false, creep, LASTHIT_DURATION, DAMAGE_TYPE_PHYSICAL)
-        if damage >= creep:GetHealth() then
+        attackHitTime = attackHitTime + geometry.GetTurnTime(bot, creep)
+        local damage = 0
+        local damagePrediction = creepDamagePrediction[creep]
+        for i = damagePrediction.first,damagePrediction.last do
+          if damagePrediction[i].time > attackHitTime then
+            break
+          end
+          damage = damage + damagePrediction[i].damage
+        end
+        damage = damage + bot:GetEstimatedDamageToTarget(false, creep, bot:GetSecondsPerAttack(), DAMAGE_TYPE_PHYSICAL)
+        if damage >= creep:GetHealth() + LASTHIT_DAMAGE_MARGIN then
+          print(attackHitTime - GameTime(), geometry.GetTurnTime(bot, creep))
           target = creep
           score = enemy and LASTHIT_SCORE or DENY_SCORE
         end
