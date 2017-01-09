@@ -1,4 +1,4 @@
-local attack = require(GetScriptDirectory() .. "/lib/attack")
+local AttackUtil = require(GetScriptDirectory() .. "/lib/attack_util")
 
 function GetClosestEnemy(bot)
   local enemies = bot:GetNearbyHeroes(1600, true, BOT_MODE_NONE)
@@ -18,7 +18,7 @@ function Think()
     local bot = GetBot()
     local enemy = GetClosestEnemy(bot)
     if enemy then
-      attack.Attack(bot, enemy)
+      AttackUtil.Attack(bot, enemy)
     end
   end
   local status, err = pcall(f)

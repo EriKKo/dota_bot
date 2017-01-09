@@ -1,15 +1,5 @@
 local module = {}
 
-function module.Filter(t, f)
-  local res = {}
-  for _,v in ipairs(t) do
-    if f(v) then
-      res[#res + 1] = v
-    end
-  end
-  return res
-end
-
 function module.PrintObject(object)
   local function valueToString(v)
     if type(v) == "function" then

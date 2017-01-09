@@ -2,12 +2,12 @@
 
 local tableItemsToBuy = {
 				"item_flask",
-				"item_flask",
+				"item_tango",
 				"item_circlet",
-        "item_circlet",
+        "item_slippers",
         "item_faerie_fire",
-				"item_slippers",
 				"item_recipe_wraith_band",
+        "item_circlet",
         "item_slippers",
 				"item_recipe_wraith_band",
         "item_infused_raindrop",

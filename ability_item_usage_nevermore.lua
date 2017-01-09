@@ -83,6 +83,7 @@ function AbilityUsageThink()
         local ability = bot:GetAbilityByName(activeAbilityName)
         if razeScore(bot, ability) < RAZE_SCORE_THRESHOLD then
           bot:Action_ClearActions(true)
+          activeAbilityName = nil
         end
       end
     else

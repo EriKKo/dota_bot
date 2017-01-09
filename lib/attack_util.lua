@@ -1,4 +1,4 @@
-local geometry = require(GetScriptDirectory() .. "/lib/geometry")
+local GeometryUtil = require(GetScriptDirectory() .. "/lib/geometry_util")
 
 local ATTACK_POINT_MARGIN = 0.0
 local attackData = {}
@@ -37,7 +37,7 @@ local function Attack(bot, target)
     end
   else
     -- Can't attack, move instead
-    bot:Action_MoveToLocation(geometry.MoveAlongLine(target:GetLocation(), bot:GetLocation(), bot:GetAttackRange()))
+    bot:Action_MoveToLocation(GeometryUtil.MoveAlongLine(target:GetLocation(), bot:GetLocation(), bot:GetAttackRange()))
     --[[
     if GetUnitToUnitDistance(bot, target) >= bot:GetAttackRange() + 50 then
       bot:Action_MoveToLocation(target:GetLocation())

@@ -1,4 +1,4 @@
-local geometry = require(GetScriptDirectory() .. "/lib/geometry")
+local GeometryUtil = require(GetScriptDirectory() .. "/lib/geometry_util")
 
 local CREEP_DPS = {
   npc_dota_creep_goodguys_melee = 21,
@@ -10,16 +10,17 @@ local CREEP_DPS = {
 }
 local TOWER1_DPS = 110
 -- TODO Add mega creeps
-local CREEP_THREAT_RANGES = {
-  npc_dota_creep_goodguys_melee = 200,
-  npc_dota_creep_badguys_melee = 200,
-  npc_dota_creep_goodguys_ranged = 600,
-  npc_dota_creep_badguys_ranged = 600,
-  npc_dota_goodguys_siege = 600,
-  npc_dota_badguys_siege = 600
+local CREEP_ATTACK_RANGES = {
+  npc_dota_creep_goodguys_melee = 100,
+  npc_dota_creep_badguys_melee = 100,
+  npc_dota_creep_goodguys_ranged = 500,
+  npc_dota_creep_badguys_ranged = 500,
+  npc_dota_goodguys_siege = 690,
+  npc_dota_badguys_siege = 690
 }
-local HERO_THREAT_RANGE = 900
-local TOWER_THREAT_RANGE = 900
+local ADDED_THREAT_RANGE = 400
+local TOWER_ATTACK_RANGE = 700
+local DEFAULT_ATTACK_RANGE = 500
 
 local function GetDPS(source, target, sourceLocation, targetLocation)
   sourceLocation = sourceLocation or source:GetLocation()
@@ -42,26 +43,24 @@ local function GetDPS(source, target, sourceLocation, targetLocation)
 end
 
 local function GetThreatRange(unit)
+  local attackRange = unit:GetAttackRange()
   if unit:IsTower() then
-    return TOWER_THREAT_RANGE
-  elseif unit:IsCreep() and CREEP_THREAT_RANGES[unit:GetUnitName()] then
-    return CREEP_THREAT_RANGES[unit:GetUnitName()]
-  else
-    return HERO_THREAT_RANGE
+    attackRange = TOWER_ATTACK_RANGE
+  elseif unit:IsCreep() and CREEP_ATTACK_RANGES[unit:GetUnitName()] then
+    attackRange = CREEP_ATTACK_RANGES[unit:GetUnitName()]
+  elseif attackRange == -1 then
+    attackRange = DEFAULT_ATTACK_RANGE
   end
+  return attackRange + ADDED_THREAT_RANGE
 end
 
 local function GetThreat(source, target, sourceLocation, targetLocation)
   sourceLocation = sourceLocation or source:GetLocation()
   targetLocation = targetLocation or target:GetLocation()
   local dps = GetDPS(source, target, sourceLocation, targetLocation)
-  local dist = geometry.GetLocationToLocationDistance(sourceLocation, targetLocation)
+  local dist = #(sourceLocation - targetLocation)
   local threatRange = GetThreatRange(source)
-  if dist > threatRange then
-    return 0
-  else
-    return (1 + (threatRange - dist)/threatRange) * dps
-  end
+  return math.max(0, dps * math.min(ADDED_THREAT_RANGE, threatRange - dist) / ADDED_THREAT_RANGE)
 end
 
 local function GetThreatFromSources(target, targetLocation, sourceGroups)
