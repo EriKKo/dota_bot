@@ -30,7 +30,7 @@ end
 
 
 itemFunctions["item_flask"] = function(bot, item)
-  if not bot:HasModifier("modifier_flask_healing") and bot:TimeSinceDamagedByAnyHero() > 4 and bot:GetMaxHealth() - bot:GetHealth() >= 400 then
+  if not bot:HasModifier("modifier_flask_healing") and #bot:GetNearbyHeroes(1600, true, BOT_MODE_NONE) == 0 and bot:GetMaxHealth() - bot:GetHealth() >= 400 then
     bot:Action_UseAbilityOnEntity(item, bot)
   end
 end

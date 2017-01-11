@@ -6,9 +6,8 @@ local function GetFountainLocation(enemy)
   end
 end
 
-local function MoveAlongLine(source, target, distance)
+local function GetLocationAlongLine(source, target, distance)
   local dv = target - source
-  local len = #dv
   dv = dv / #dv
   return source + dv*distance
 end
@@ -22,6 +21,14 @@ local function GetClosestPointAlongPath(startPoint, endPoint, p)
   t = math.max(0, math.min(1, t))
   return startPoint + t*d
 end
+
+local function GetAngle(sourceLocation, targetLocation)
+  return math.atan2(targetLocation[2] - sourceLocation[2], targetLocation[1] - sourceLocation[1])
+end
+
+local l1 = {500, 1000}
+local l2 = {500, 500}
+print(GetAngle(l2, l1) * 180 / math.pi)
 
 local function GetMinDistanceAlongPath(startPoint, endPoint, p)
   return #(GetClosestPointAlongPath(startPoint, endPoint, p) - p)
@@ -59,10 +66,11 @@ if not status then
 end
 
 return {
+  GetAngle = GetAngle,
   GetClosestPointAlongPath = GetClosestPointAlongPath,
   GetFountainLocation = GetFountainLocation,
   GetLocationToLocationDistance = GetLocationToLocationDistance,
   GetMinDistanceAlongPath = GetMinDistanceAlongPath,
   GetTurnTime = GetTurnTime,
-  MoveAlongLine = MoveAlongLine
+  GetLocationAlongLine = GetLocationAlongLine
 }

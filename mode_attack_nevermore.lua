@@ -1,4 +1,5 @@
 local AttackUtil = require(GetScriptDirectory() .. "/lib/attack_util")
+local GeometryUtil = require(GetScriptDirectory() .. "/lib/geometry_util")
 
 function GetClosestEnemy(bot)
   local enemies = bot:GetNearbyHeroes(1600, true, BOT_MODE_NONE)
@@ -18,7 +19,8 @@ function Think()
     local bot = GetBot()
     local enemy = GetClosestEnemy(bot)
     if enemy then
-      AttackUtil.Attack(bot, enemy)
+      print(bot:GetFacing() / 180 * math.pi, GeometryUtil.GetAngle(bot:GetLocation(), enemy:GetLocation()))
+      AttackUtil.FaceLocation(bot, enemy:GetLocation())
     end
   end
   local status, err = pcall(f)
