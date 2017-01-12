@@ -35,7 +35,7 @@ local function GetDPS(source, target, sourceLocation, targetLocation)
   else
     dps = source:GetEstimatedDamageToTarget(false, target, 1, DAMAGE_TYPE_PHYSICAL)
   end
-  dps = dps / target:GetHealth()
+  dps = math.min(1, dps / target:GetHealth())
   if GetHeightLevel(sourceLocation) > GetHeightLevel(targetLocation) then
     -- Source has lowground
     dps = 0.75 * dps
@@ -86,7 +86,7 @@ local function GetThreatFromSources(target, targetLocation, sourceGroups)
   local threat = 0
   for _,sourceGroup in ipairs(sourceGroups) do
     for _,source in ipairs(sourceGroup) do
-      threat = threat + GetThreat(source, target, nil, targetLocation)
+      threat = math.min(1, threat + GetThreat(source, target, nil, targetLocation))
     end
   end
   return threat

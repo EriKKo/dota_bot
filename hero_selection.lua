@@ -3,7 +3,7 @@ local pickForPlayers = true
 local heroes = {
   [TEAM_RADIANT] = {
     "npc_dota_hero_nevermore",
-    "npc_dota_hero_medusa",
+    "npc_dota_hero_lion",
     "npc_dota_hero_sven",
     "npc_dota_hero_razor",
     "npc_dota_hero_windrunner"

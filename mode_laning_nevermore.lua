@@ -12,8 +12,8 @@ local INFINITY = 1000000
 
 local MANA_POOL_VALUE = 1
 local LASTHIT_DAMAGE_MARGIN = 15
-local LASTHIT_SCORE = 0.5
-local DENY_SCORE = 0.25
+local LASTHIT_SCORE = 0.1
+local DENY_SCORE = 0.05
 local ENEMY_CREEP_IN_EXP_RANGE_SCORE = 0.01
 local CREEP_CLOSE_SCORE = -0.01
 
@@ -144,8 +144,8 @@ function GetLaneLocationScore(bot, newLocation)
   -- Get threat from heroes and take into account defending creeps
   for _,enemyHero in ipairs(laneData.enemyHeroes) do
     local enemyLocation = enemyHero:GetLocation()
-    if GetUnitToUnitDistance(bot, enemyHero) > AttackUtil.GetAttackRange(enemyHero, bot) then
-      enemyLocation = GeometryUtil.GetLocationAlongLine(bot:GetLocation(), enemyLocation, AttackUtil.GetAttackRange(enemyHero, bot))
+    if #(enemyLocation - newLocation) > AttackUtil.GetAttackRange(enemyHero, bot) then
+      enemyLocation = GeometryUtil.GetLocationAlongLine(newLocation, enemyLocation, AttackUtil.GetAttackRange(enemyHero, bot))
     end
     local enemyThreat = AttackUtil.GetThreat(enemyHero, bot, enemyLocation, newLocation)
     enemyThreat = enemyThreat - AttackUtil.GetThreatFromSources(enemyHero, enemyLocation, {laneData.allyCreeps, laneData.allyTowers})
@@ -311,7 +311,7 @@ function GetRegenAction(bot)
           local maxHeal = tango:GetSpecialValueInt("total_heal")
           local actualHeal = math.min(maxHeal, missingHealth)
           local wastedHeal = maxHeal - actualHeal
-          local tangoScore = (actualHeal - wastedHeal) / bot:GetHealth()
+          local tangoScore = (actualHeal - wastedHeal) / bot:GetMaxHealth()
           tangoScore = tangoScore / (moveDuration + 1)
           tangoScore = tangoScore + GetMoveScore(bot, treeLocation)
           if tangoScore > score then
@@ -330,8 +330,8 @@ function GetRegenAction(bot)
         healLocation = GeometryUtil.GetLocationAlongLine(enemyHero:GetLocation(), GeometryUtil.GetFountainLocation(), AttackUtil.GetThreatRange(enemyHero, bot) * 1.5)
       end
     end
-    if bot:HasModifier("modifier_flask_healing") then
-      local salveScore = missingHealth / bot:GetHealth()
+    if bot:HasModifier("modifier_flask_healing") and #(healLocation - bot:GetLocation()) > 0 then
+      local salveScore = missingHealth / bot:GetMaxHealth()
       salveScore = salveScore + GetMoveScore(bot, healLocation)
       if salveScore > score then
         score = salveScore
@@ -347,7 +347,7 @@ function GetRegenAction(bot)
         local wastedHeal = maxHeal - actualHeal
         local healDuration = salve:GetSpecialValueInt("buff_duration") * actualHeal / maxHeal
         local moveDuration = GetUnitToLocationDistance(bot, healLocation) / bot:GetCurrentMovementSpeed() + healDuration
-        local salveScore = (actualHeal - wastedHeal) / bot:GetHealth()
+        local salveScore = (actualHeal - wastedHeal) / bot:GetMaxHealth()
         salveScore = salveScore / (moveDuration + 1)
         salveScore = salveScore + GetMoveScore(bot, healLocation)
         if salveScore > score then
@@ -367,7 +367,7 @@ function GetRegenAction(bot)
     -- Check fountain trip
     local fountainLocation = GeometryUtil.GetFountainLocation()
     local fountainTime = GetUnitToLocationDistance(bot, fountainLocation) / bot:GetCurrentMovementSpeed()
-    local fountainScore = missingHealth / bot:GetHealth() / (fountainTime + 1) + GetMoveScore(bot, fountainLocation)
+    local fountainScore = missingHealth / bot:GetMaxHealth() / (fountainTime + 1) + GetMoveScore(bot, fountainLocation)
     if fountainScore > score then
       score = fountainScore
       action = function()
@@ -429,7 +429,7 @@ function GetRazeAction(bot)
         for _,enemyHero in ipairs(laneData.enemyHeroes) do
           if #(enemyHero:GetLocation() + enemyHero:GetExtrapolatedLocation(castPoint) - location) < radius + enemyHero:GetBoundingRadius() and not enemyHero:IsMagicImmune() and not enemyHero:IsInvulnerable() then
             local actualDamage = math.min(enemyHero:GetHealth(), enemyHero:GetActualDamage(damage, damageType))
-            razeScore = actualDamage / (enemyHero:GetHealth() - actualDamage + 1)
+            razeScore = actualDamage / enemyHero:GetMaxHealth()
           end
         end
         razeScore = razeScore - raze:GetManaCost() / bot:GetMana() * MANA_POOL_VALUE
@@ -481,6 +481,7 @@ function Think()
   function f()
     local bot = GetBot()
     CalculateLaneData(bot)
+    print("Lane score:", GetLaneLocationScore(bot))
     
     local actionType = bot:GetCurrentActionType()
     if bot:IsAlive() then
