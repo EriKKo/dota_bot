@@ -19,8 +19,12 @@ function Think()
     local bot = GetBot()
     local enemy = GetClosestEnemy(bot)
     if enemy then
-      print(bot:GetFacing() / 180 * math.pi, GeometryUtil.GetAngle(bot:GetLocation(), enemy:GetLocation()))
-      AttackUtil.FaceLocation(bot, enemy:GetLocation())
+      print(enemy:GetMovementDirectionStability())
+      bot:Action_MoveToLocation(enemy:GetLocation() + enemy:GetExtrapolatedLocation(0.55) * enemy:GetMovementDirectionStability())
+    else
+      local shrine = GetShrine(GetTeam(), SHRINE_JUNGLE_1)
+      print(shrine:GetUnitName())
+      bot:Action_MoveToLocation(shrine:GetLocation())
     end
   end
   local status, err = pcall(f)

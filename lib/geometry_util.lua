@@ -1,8 +1,8 @@
 local function GetFountainLocation(enemy)
   if GetTeam() == TEAM_RADIANT and not enemy or GetTeam() == TEAM_DIRE and enemy then
-    return Vector(-7000, -7000, 0)
+    return Vector(-6756.747070, -6312.382324, 512.000000)
   else
-    return Vector(7000, 7000, 0)
+    return Vector(6698.524902, 6129.075195, 512.000000)
   end
 end
 
