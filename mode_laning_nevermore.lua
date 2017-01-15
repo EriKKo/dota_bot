@@ -138,16 +138,53 @@ function GetFrontLineLocation(bot)
   end
 end
 
+local function GetChaseThreat(source, target, targetLocation, endLocation)
+  targetLocation = targetLocation or target:GetLocation()
+  local attackRange = AttackUtil.GetAttackRange(source, target)
+  local sourceSpeed = source:GetCurrentMovementSpeed()
+  local targetSpeed = target:GetCurrentMovementSpeed()
+  local meetingPoint = GeometryUtil.GetClosestPointAlongPath(targetLocation, endLocation, source:GetLocation())
+  local sourceWalkDistance = math.max(0, GetUnitToLocationDistance(source, meetingPoint) - attackRange)
+  local sourceWalkTime = sourceWalkDistance / sourceSpeed
+  local sourceDistanceToEnd = GeometryUtil.GetLocationToLocationDistance(meetingPoint, endLocation)
+  local targetDistanceToEnd = GeometryUtil.GetLocationToLocationDistance(targetLocation, endLocation) - targetSpeed * sourceWalkTime
+  targetDistanceToEnd = math.min(sourceDistanceToEnd + attackRange, targetDistanceToEnd)
+  local chaseThreat = 0
+  local hitDamage = target:GetActualDamage(source:GetAttackDamage(), DAMAGE_TYPE_PHYSICAL) / target:GetHealth()
+  while targetDistanceToEnd > 0 and chaseThreat < 1 do
+    if targetDistanceToEnd >= sourceDistanceToEnd - attackRange then
+      chaseThreat = chaseThreat + hitDamage
+      targetDistanceToEnd = targetDistanceToEnd - targetSpeed * source:GetSecondsPerAttack()
+      sourceDistanceToEnd = sourceDistanceToEnd - sourceSpeed * (source:GetSecondsPerAttack() - source:GetAttackPoint() / source:GetAttackSpeed())
+      sourceDistanceToEnd = math.max(sourceDistanceToEnd, targetDistanceToEnd - attackRange)
+    else
+      if sourceSpeed > targetSpeed then
+        local dist = sourceDistanceToEnd - attackRange - targetDistanceToEnd
+        local time = dist / (sourceSpeed - targetSpeed) + 0.001
+        targetDistanceToEnd = targetDistanceToEnd - targetSpeed * time
+        sourceDistanceToEnd = sourceDistanceToEnd - sourceSpeed * time
+      else
+        break
+      end
+    end
+  end
+  local chaseTime = (GeometryUtil.GetLocationToLocationDistance(targetLocation, endLocation) - math.max(0, targetDistanceToEnd)) / targetSpeed
+  chaseThreat = math.min(1, chaseThreat) / chaseTime
+  return chaseThreat
+end
+
 function GetLaneLocationScore(bot, newLocation)
   newLocation = newLocation or bot:GetLocation()
   local score = -AttackUtil.GetThreatFromSources(bot, newLocation, {laneData.enemyCreeps, laneData.enemyTowers})
+  -- TODO fix when tower dies
+  local safetyLocation = GetTower(GetTeam(), TOWER_MID_1):GetLocation()
   -- Get threat from heroes and take into account defending creeps
   for _,enemyHero in ipairs(laneData.enemyHeroes) do
     local enemyLocation = enemyHero:GetLocation()
     if GeometryUtil.GetLocationToLocationDistance(enemyLocation, newLocation) > AttackUtil.GetAttackRange(enemyHero, bot) then
       enemyLocation = GeometryUtil.GetLocationAlongLine(newLocation, enemyLocation, AttackUtil.GetAttackRange(enemyHero, bot))
     end
-    local enemyThreat = AttackUtil.GetThreat(enemyHero, bot, enemyLocation, newLocation)
+    local enemyThreat = GetChaseThreat(enemyHero, bot, newLocation, safetyLocation) --AttackUtil.GetThreat(enemyHero, bot, enemyLocation, newLocation)
     enemyThreat = enemyThreat - AttackUtil.GetThreatFromSources(enemyHero, enemyLocation, {laneData.allyCreeps, laneData.allyTowers})
     enemyThreat = math.max(0, enemyThreat)
     score = score - enemyThreat
@@ -176,7 +213,11 @@ end
 
 function GetMoveScore(bot, newLocation)
   local duration = GetUnitToLocationDistance(bot, newLocation) / bot:GetCurrentMovementSpeed()
-  return (GetLaneLocationScore(bot, newLocation) - GetLaneLocationScore(bot)) --/ (duration + 1)
+  local moveScore = GetLaneLocationScore(bot, newLocation) - GetLaneLocationScore(bot)
+  for _,enemyHero in ipairs(laneData.enemyHeroes) do
+    --moveScore = moveScore - GetChaseThreat(enemyHero, bot, nil, newLocation)
+  end
+  return moveScore
 end
 
 function GetMoveAction(bot)
@@ -557,7 +598,6 @@ function Think()
   function f()
     local bot = GetBot()
     CalculateLaneData(bot)
-    local enemy = GetTeamMember(TEAM_RADIANT, 1)
     
     local actionType = bot:GetCurrentActionType()
     if bot:IsAlive() then
