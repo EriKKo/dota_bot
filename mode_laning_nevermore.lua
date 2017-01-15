@@ -97,14 +97,14 @@ function GetFrontLineLocation(bot)
   -- Use the front tower as front line if creeps are not there yet
   for _,allyTower in ipairs(laneData.allyTowers) do
     local towerSafetyLocation = allyTower:GetLocation()
-    if #(towerSafetyLocation - ownFountain) > #(minLocation - ownFountain) then
+    if GeometryUtil.GetLocationToLocationDistance(towerSafetyLocation, ownFountain) > GeometryUtil.GetLocationToLocationDistance(minLocation, ownFountain) then
       minLocation = towerSafetyLocation
     end
   end
   -- Make sure we don't towerdive
   for _,enemyTower in ipairs(laneData.enemyTowers) do
     local beforeTowerLocation = GeometryUtil.GetLocationAlongLine(enemyTower:GetLocation(), ownFountain, AttackUtil.GetThreatRange(enemyTower, bot))
-    if #(beforeTowerLocation - ownFountain) < #(maxLocation - ownFountain) then
+    if GeometryUtil.GetLocationToLocationDistance(beforeTowerLocation, ownFountain) < GeometryUtil.GetLocationToLocationDistance(maxLocation, ownFountain) then
       maxLocation = beforeTowerLocation
     end
   end
@@ -125,13 +125,13 @@ function GetFrontLineLocation(bot)
   end
   -- Check position of enemy heroes
   for _,enemyHero in ipairs(laneData.enemyHeroes) do
-    if GetUnitToLocationDistance(enemyHero, ownFountain) < #(frontLineLocation - ownFountain) then
+    if GetUnitToLocationDistance(enemyHero, ownFountain) < GeometryUtil.GetLocationToLocationDistance(frontLineLocation, ownFountain) then
       frontLineLocation = enemyHero:GetLocation()
     end
   end
-  if #(frontLineLocation - ownFountain) < #(minLocation - ownFountain) then
+  if GeometryUtil.GetLocationToLocationDistance(frontLineLocation, ownFountain) < GeometryUtil.GetLocationToLocationDistance(minLocation, ownFountain) then
     return minLocation
-  elseif #(frontLineLocation - ownFountain) > #(maxLocation - ownFountain) then
+  elseif GeometryUtil.GetLocationToLocationDistance(frontLineLocation, ownFountain) > GeometryUtil.GetLocationToLocationDistance(maxLocation, ownFountain) then
     return maxLocation
   else
     return frontLineLocation
@@ -144,7 +144,7 @@ function GetLaneLocationScore(bot, newLocation)
   -- Get threat from heroes and take into account defending creeps
   for _,enemyHero in ipairs(laneData.enemyHeroes) do
     local enemyLocation = enemyHero:GetLocation()
-    if #(enemyLocation - newLocation) > AttackUtil.GetAttackRange(enemyHero, bot) then
+    if GeometryUtil.GetLocationToLocationDistance(enemyLocation, newLocation) > AttackUtil.GetAttackRange(enemyHero, bot) then
       enemyLocation = GeometryUtil.GetLocationAlongLine(newLocation, enemyLocation, AttackUtil.GetAttackRange(enemyHero, bot))
     end
     local enemyThreat = AttackUtil.GetThreat(enemyHero, bot, enemyLocation, newLocation)
@@ -190,7 +190,7 @@ function GetMoveAction(bot)
     end
   end
   
-  if lastMoveTarget and #(lastMoveTarget - bestMove) <= LANE_RADIUS then
+  if lastMoveTarget and GeometryUtil.GetLocationToLocationDistance(lastMoveTarget, bestMove) <= LANE_RADIUS then
     TestMove(lastMoveTarget)
   end
   local LINES = 3
@@ -221,7 +221,7 @@ function GetHarassAction(bot)
     local harassLocation = bot:GetLocation()
     local timeToCatch = 0
     if GetUnitToUnitDistance(bot, enemyHero) > AttackUtil.GetAttackRange(bot, enemyHero) or attackCooldown > 0 then
-      local PREDICTION_TIME = 1
+      local PREDICTION_TIME = 1.5
       local walkDistance = math.max(0, GetUnitToUnitDistance(bot, enemyHero) - AttackUtil.GetAttackRange(bot, enemyHero))
       local newEnemyLocation = AttackUtil.GetProbableLocation(enemyHero, PREDICTION_TIME)
       local newWalkDistance = GetUnitToLocationDistance(bot, newEnemyLocation) - AttackUtil.GetAttackRange(bot, enemyHero) - PREDICTION_TIME * bot:GetCurrentMovementSpeed()
@@ -320,10 +320,10 @@ end
 function GetTangoTree(bot)
   local trees = bot:GetNearbyTrees(MAX_SEARCH_RADIUS)
   local ownFountain = GeometryUtil.GetFountainLocation()
-  local maxTreeFountainDist = #(GetFrontLineLocation(bot) - ownFountain)
+  local maxTreeFountainDist = GeometryUtil.GetLocationToLocationDistance(GetFrontLineLocation(bot), ownFountain)
   for _,tree in ipairs(trees) do
     local treeLocation = GetTreeLocation(tree)
-    if #(treeLocation - ownFountain) < maxTreeFountainDist then
+    if GeometryUtil.GetLocationToLocationDistance(treeLocation, ownFountain) < maxTreeFountainDist then
       return tree
     end
   end
@@ -370,7 +370,7 @@ function GetRegenAction(bot)
         healLocation = GeometryUtil.GetLocationAlongLine(enemyHero:GetLocation(), GeometryUtil.GetFountainLocation(), AttackUtil.GetThreatRange(enemyHero, bot) * 1.5)
       end
     end
-    if bot:HasModifier("modifier_flask_healing") and #(healLocation - bot:GetLocation()) > 0 then
+    if bot:HasModifier("modifier_flask_healing") and GeometryUtil.GetLocationToLocationDistance(healLocation, bot:GetLocation()) > 0 then
       local salveScore = (missingHealth - currentTangoHeal) / bot:GetMaxHealth()
       salveScore = salveScore + GetMoveScore(bot, healLocation)
       if salveScore > score then
@@ -450,7 +450,7 @@ function GetRazeAction(bot)
       for _,enemies in ipairs({laneData.enemyCreeps, laneData.enemyHeroes}) do
         for _,enemy in ipairs(enemies) do
           local enemyLocation = AttackUtil.GetProbableLocation(enemy, castPoint)
-          local dist = #(enemyLocation - botLocation)
+          local dist = GeometryUtil.GetLocationToLocationDistance(enemyLocation, botLocation)
           local hitRadius = radius + enemy:GetBoundingRadius()
           if math.abs(dist - castRange) <= hitRadius and (enemy:IsHero() or enemy:GetHealth() <= enemy:GetActualDamage(damage, damageType)) then
             local angle = GeometryUtil.GetAngle(botLocation, enemyLocation)
@@ -472,7 +472,7 @@ function GetRazeAction(bot)
             local enemyLocation = AttackUtil.GetProbableLocation(enemy, castPoint)
             local hitRadius = radius + enemy:GetBoundingRadius()
             local actualDamage = math.min(enemy:GetHealth(), enemy:GetActualDamage(damage, damageType))
-            if #(enemyLocation - location) <= hitRadius and not enemy:IsMagicImmune() and not enemy:IsInvulnerable() then
+            if GeometryUtil.GetLocationToLocationDistance(enemyLocation, location) <= hitRadius and not enemy:IsMagicImmune() and not enemy:IsInvulnerable() then
               if enemy:IsHero() then
                 razeScore = razeScore + actualDamage / enemy:GetHealth()
               elseif actualDamage >= enemy:GetHealth() then
@@ -525,11 +525,39 @@ function GetRazeAction(bot)
   return action, score
 end
 
+function GetCreepBlockAction(bot)
+  local score = -INFINITY
+  local location = nil
+  if #laneData.enemyCreeps + #laneData.enemyTowers + #laneData.enemyHeroes == 0 and #laneData.allyCreeps > 0 then
+    local possible = true
+    local ownFountain = GeometryUtil.GetFountainLocation()
+    local enemyFountain = GeometryUtil.GetFountainLocation(true)
+    location = ownFountain
+    for _,creep in ipairs(laneData.allyCreeps) do
+      if GetUnitToLocationDistance(creep, ownFountain) > GetUnitToLocationDistance(bot, ownFountain) then
+        possible = false
+      end
+      local blockLocation = GeometryUtil.GetLocationAlongLine(creep:GetLocation(), enemyFountain, 90)
+      if GeometryUtil.GetLocationToLocationDistance(blockLocation, ownFountain) > GeometryUtil.GetLocationToLocationDistance(location, ownFountain) then
+        location = blockLocation
+      end
+    end
+    if possible then
+      score = 0.03
+    end
+  end
+  action = function()
+    bot:Action_MoveToLocation(location)
+  end
+  return action, score
+end
+
 function Think()
   
   function f()
     local bot = GetBot()
     CalculateLaneData(bot)
+    local enemy = GetTeamMember(TEAM_RADIANT, 1)
     
     local actionType = bot:GetCurrentActionType()
     if bot:IsAlive() then
@@ -538,13 +566,20 @@ function Think()
       local moveAction, moveScore = GetMoveAction(bot)
       local harassAction, harassScore = GetHarassAction(bot)
       local razeAction, razeScore = GetRazeAction(bot)
-      local bestScore = math.max(lasthitScore, math.max(moveScore, math.max(regenScore, math.max(razeScore, harassScore))))
+      local creepBlockAction, creepBlockScore = GetCreepBlockAction(bot)
+      local bestScore = nil
+      for _,score in ipairs({regenScore, lasthitScore, moveScore, harassScore, razeScore, creepBlockScore}) do
+        if not bestScore or score > bestScore then
+          bestScore = score
+        end
+      end
       if bestScore > 0 then
         if regenScore > 0 then print("Regen", regenScore) end
         if lasthitScore > 0 then print("Lasthit", lasthitScore) end
         if moveScore > 0 then print("Move", moveScore) end
         if harassScore > 0 then print("Harass", harassScore) end
         if razeScore > 0 then print("Raze", razeScore) end
+        if creepBlockScore > 0 then print("Creep block:", creepBlockScore) end
         print()
       end
       if razeScore == bestScore then
@@ -566,6 +601,8 @@ function Think()
         elseif lasthitScore == bestScore then
           -- Lasthit
           lasthitAction()
+        elseif creepBlockScore == bestScore then
+          creepBlockAction()
         else
           print("Wat")
         end

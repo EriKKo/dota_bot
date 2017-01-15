@@ -6,14 +6,24 @@ local function GetFountainLocation(enemy)
   end
 end
 
-local function GetLocationAlongLine(source, target, distance)
+local function GetDeltaVector(source, target)
   local dv = target - source
+  dv[3] = 0
+  return dv
+end
+
+local function GetLocationToLocationDistance(source, target)
+  return #GetDeltaVector(source, target)
+end
+
+local function GetLocationAlongLine(source, target, distance)
+  local dv = GetDeltaVector(source, target)
   dv = dv / #dv
   return source + dv*distance
 end
 
 local function GetClosestPointAlongPath(startPoint, endPoint, p)
-  local d = endPoint - startPoint
+  local d = GetDeltaVector(startPoint, endPoint)
   if #d == 0 then
     return startPoint
   end
@@ -26,12 +36,8 @@ local function GetAngle(sourceLocation, targetLocation)
   return math.atan2(targetLocation[2] - sourceLocation[2], targetLocation[1] - sourceLocation[1])
 end
 
-local l1 = {500, 1000}
-local l2 = {500, 500}
-print(GetAngle(l2, l1) * 180 / math.pi)
-
 local function GetMinDistanceAlongPath(startPoint, endPoint, p)
-  return #(GetClosestPointAlongPath(startPoint, endPoint, p) - p)
+  return GetLocationToLocationDistance(p, GetClosestPointAlongPath(startPoint, endPoint, p))
 end
 
 local function GetTurnTime(source, target)
@@ -52,22 +58,10 @@ local function GetTurnTime(source, target)
   return 0.03 * angleDiff
 end
 
-function f()
-  local PrintUtil = require(GetScriptDirectory() .. "/lib/print_util")
-
-  local s = Vector(0, 0)
-  local e = Vector(5, 5)
-  local p = Vector(-1, 0)
-  print(GetMinDistanceAlongPath(s, e, p))
-end
-local status,err = pcall(f)
-if not status then
-  print(err)
-end
-
 return {
   GetAngle = GetAngle,
   GetClosestPointAlongPath = GetClosestPointAlongPath,
+  GetDeltaVector = GetDeltaVector,
   GetFountainLocation = GetFountainLocation,
   GetLocationToLocationDistance = GetLocationToLocationDistance,
   GetMinDistanceAlongPath = GetMinDistanceAlongPath,

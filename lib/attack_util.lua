@@ -32,7 +32,7 @@ local function GetThreat(source, target, sourceLocation, targetLocation)
   sourceLocation = sourceLocation or source:GetLocation()
   targetLocation = targetLocation or target:GetLocation()
   local dps = GetDPS(source, target, sourceLocation, targetLocation)
-  local dist = #(sourceLocation - targetLocation)
+  local dist = GeometryUtil.GetLocationToLocationDistance(sourceLocation, targetLocation)
   local attackRange = GetAttackRange(source, target)
   local threatRange = GetThreatRange(source, target)
   if dist <= attackRange then
