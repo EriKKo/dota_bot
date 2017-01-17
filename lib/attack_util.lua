@@ -96,8 +96,6 @@ local function Attack(bot, target)
         bot:Action_MoveToLocation(target:GetLocation())
       end
     end
-  else
-    bot:Action_MoveToLocation(GetProbableLocation(target, GetAttackCooldown(bot)))
   end
 end
 
